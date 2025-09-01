@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
+/* --- styles unchanged --- */
 body {
   font-family: Arial, sans-serif;
   background: #f0f0f0;
@@ -43,7 +44,7 @@ h1 { margin-bottom: 10px; }
 }
 .slide {
   width: 800px;
-  height: 600px; /* Increased height */
+  height: 600px;
   margin: 20px auto;
   background: white;
   position: relative;
@@ -75,33 +76,29 @@ h1 { margin-bottom: 10px; }
   flex-direction: column;
   align-items: center;
   width: 350px;
-  position: relative; /* This allows the "After" heading to stick to the top */
+  position: relative;
 }
 .image-label {
   font-weight: 800;
-  font-size: 32px; /* Increased size */
-  text-transform: uppercase; /* Capitalized */
+  font-size: 32px;
+  text-transform: uppercase;
   color: black;
-  margin-bottom: 50px; /* Added more space */
+  margin-bottom: 50px;
 }
 .images img {
   width: 100%;
-  height: 450px; /* Increased height */
+  height: 450px;
   border: 1px solid #ccc;
   border-radius: 4px;
   object-fit: cover;
 }
 .after-image{
    width: 100%;
-  height: 450px; /* Increased height */
+  height: 450px;
 }
+.footer { display: none; }
 
-
-.footer { 
-  display: none; /* Removed company name */
-}
-
-/* Advanced Neon Spinner Overlay */
+/* Progress Overlay */
 #progressOverlay {
   display: none;
   position: fixed;
@@ -113,14 +110,11 @@ h1 { margin-bottom: 10px; }
   align-items: center;
   flex-direction: column;
 }
-
-/* Neon Spinner */
 #progressCircleContainer {
   position: relative;
   width: 120px;
   height: 120px;
 }
-
 .neon-ring {
   position: absolute;
   top: 0; left: 0;
@@ -130,23 +124,9 @@ h1 { margin-bottom: 10px; }
   border-radius: 50%;
   animation: spin 1.2s linear infinite;
 }
-
-.neon-ring:nth-child(2) {
-  border-top-color: #ff00f0;
-  animation-duration: 1.6s;
-}
-
-.neon-ring:nth-child(3) {
-  border-top-color: #00ff88;
-  animation-duration: 2s;
-  }
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Progress Text Styling */
+.neon-ring:nth-child(2) { border-top-color: #ff00f0; animation-duration: 1.6s; }
+.neon-ring:nth-child(3) { border-top-color: #00ff88; animation-duration: 2s; }
+@keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
 #progressText {
   margin-top: 25px;
   font-weight: bold;
@@ -169,7 +149,6 @@ h1 { margin-bottom: 10px; }
 <div id="categoriesContainer"></div>
 <div id="slidesContainer"></div>
 
-<!-- Futuristic Neon Spinner Overlay -->
 <div id="progressOverlay" class="flex">
   <div id="progressCircleContainer">
     <div class="neon-ring"></div>
@@ -210,31 +189,24 @@ function renderSlides() {
   categories.forEach(cat => {
     if(!cat.name && cat.images.length === 0) return;
 
-    // First Slide
     const firstSlide = document.createElement("div");
     firstSlide.className = "slide";
     firstSlide.id = "slide-" + slideCount;
-    firstSlide.innerHTML = `
-      <div class="category">${cat.name || "Category"}</div>
-    `;
+    firstSlide.innerHTML = `<div class="category">${cat.name || "Category"}</div>`;
     container.appendChild(firstSlide);
     slideCount++;
 
-    // Slides with "Before" image and empty space for "After" image
     for (let i = 0; i < cat.images.length; i++) {
       const slide = document.createElement("div");
       slide.className = "slide";
       slide.id = "slide-" + slideCount;
-
       let img1 = cat.images[i] ? `<img src="${cat.images[i]}">` : "";
-
       slide.innerHTML = `
         <div class="images">
           <div class="image-container">
             <span class="image-label">Before</span>
             ${img1}
           </div>
-          <!-- Empty space for "After" image with heading -->
           <div class="image-container">
             <span class="image-label">After</span>
             <div class="after-image"></div>
@@ -272,17 +244,20 @@ async function downloadPDF(){
   for (let c = 0; c < categories.length; c++) {
     const cat = categories[c];
     if (!cat.name && cat.images.length === 0) continue;
+
     const catSlide = await html2canvas(document.getElementById("slide-" + slideIndex));
-    pdf.addImage(catSlide.toDataURL("image/png"), "PNG", 0, 0, 800, 500);
+    pdf.addImage(catSlide.toDataURL("image/jpeg", 0.6), "JPEG", 0, 0, 800, 500);
     slideIndex++;
     updateProgress(slideIndex);
+
     for (let i = 0; i < cat.images.length; i++) {
-      if (slideIndex > 0) pdf.addPage();
+      pdf.addPage();
       const canvas = await html2canvas(document.getElementById("slide-" + slideIndex));
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 800, 500);
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.6), "JPEG", 0, 0, 800, 500);
       slideIndex++;
       updateProgress(slideIndex);
     }
+
     if (c < categories.length - 1) pdf.addPage();
   }
 
