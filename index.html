@@ -42,6 +42,35 @@ h1 { margin-bottom: 10px; }
   margin-bottom: 10px;
   width: 60%;
 }
+.drop-zone {
+  margin-top: 10px;
+  padding: 20px;
+  border: 2px dashed #aaa;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #fafafa;
+  position: relative;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+  font-size: 16px;
+}
+.drop-zone.dragover {
+  background: #e0f7ff;
+  border-color: #00aaff;
+}
+.drop-zone input[type=file] {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
 .slide {
   width: 800px;
   height: 600px;
@@ -173,14 +202,48 @@ function addCategory() {
   box.innerHTML = `
     <h3>Category ${index+1}</h3>
     <input type="text" placeholder="Enter category name" oninput="updateCategoryName(${index}, this.value)">
-    <br>
-    <input type="file" multiple accept="image/*" onchange="updateCategoryImages(${index}, this.files)">
+    <div class="drop-zone" id="dropZone-${index}">
+      <span>Drag & Drop Images Here or Click to Upload</span>
+      <input type="file" id="fileInput-${index}" multiple accept="image/*" onchange="updateCategoryImages(${index}, this.files)">
+    </div>
   `;
-  container.appendChild(box);
+  container.prepend(box);
+
+  enableDragDrop(index);
 }
 
-function updateCategoryName(index, value) { categories[index].name = value; renderSlides(); }
-function updateCategoryImages(index, files) { categories[index].images = Array.from(files).map(f => URL.createObjectURL(f)); renderSlides(); }
+function enableDragDrop(index) {
+  const dropZone = document.getElementById("dropZone-" + index);
+
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+  });
+
+  dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragover");
+  });
+
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+    if (files.length > 0) {
+      categories[index].images.push(...files.map(f => URL.createObjectURL(f)));
+      renderSlides();
+    }
+  });
+}
+
+function updateCategoryName(index, value) { 
+  categories[index].name = value; 
+  renderSlides(); 
+}
+
+function updateCategoryImages(index, files) { 
+  categories[index].images.push(...Array.from(files).map(f => URL.createObjectURL(f))); 
+  renderSlides(); 
+}
 
 function renderSlides() {
   const container = document.getElementById("slidesContainer");
