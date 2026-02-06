@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Malaya Slides</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f0f0f0;
+  text-align: center;
+}
+
+button {
+  padding: 10px 16px;
+  font-size: 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #004080;
+  color: white;
+  margin: 5px;
+}
+
+.category-box {
+  width: 500px;
+  margin: 15px auto;
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  position: relative;
+  border: 2px solid #ccc;
+}
+
+.category-box input {
+  padding: 8px;
+  width: 70%;
+}
+
+.drop-zone {
+  margin-top: 12px;
+  padding: 20px;
+  border: 2px dashed #aaa;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+}
+
+.drop-zone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.file-count {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #007bff;
+  font-weight: bold;
+}
+
+.delete-category {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* SLIDE */
+.slide {
+  width: 1120px;
+  height: 630px;
+  background: white;
+  margin: 30px auto;
+  position: relative;
+  box-shadow: 0 4px 10px rgba(0,0,0,.2);
+  padding: 20px 30px;
+  box-sizing: border-box;
+}
+
+/* LOGOS */
+.logo-left,
+.logo-right{
+  position: absolute;
+  top: 20px;
+  width: 80px;
+}
+
+.logo-center {
+  position: absolute;
+  top: 20px;
+  width: 130px;
+}
+
+.logo-left { left: 20px; }
+.logo-right { right: 20px; }
+
+.logo-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* HEADINGS */
+.slide-headings {
+  margin-top: 120px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  font-size: 30px;
+  font-weight: 800;
+}
+
+/* IMAGES */
+.slide-images {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  height: 420px;
+}
+
+.column {
+  
+}
+
+.column img {
+  width: 100%;
+  height: 420px;
+  object-fit: fill;
+}
+
+/* NEON LOADER */
+#progressOverlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+}
+
+.ring {
+  position:absolute;
+  inset:0;
+  border:8px solid transparent;
+  border-radius:50%;
+  animation:spin linear infinite;
+}
+.r1 { border-top-color:#00f0ff; animation-duration:1.2s; }
+.r2 { border-top-color:#ff00ff; animation-duration:1.8s; }
+.r3 { border-top-color:#00ff88; animation-duration:2.4s; }
+
+@keyframes spin {
+  from { transform:rotate(0deg); }
+  to { transform:rotate(360deg); }
+}
+
+#progressText {
+  margin-top:25px;
+  color:#0ff;
+  font-size:20px;
+  font-weight:bold;
+  text-shadow:0 0 10px #0ff;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Slides</h1>
+<h2>Before / During / After</h2>
+
+<button onclick="addCategory()">+ Add Category</button>
+<button onclick="downloadPDF()">Download PDF</button>
+
+<div id="categoriesContainer"></div>
+<div id="slidesContainer"></div>
+
+<!-- PROGRESS OVERLAY -->
+<div id="progressOverlay">
+  <div style="position:relative;width:120px;height:120px;">
+    <div class="ring r1"></div>
+    <div class="ring r2"></div>
+    <div class="ring r3"></div>
+  </div>
+  <div id="progressText">
+    <div id="percent">0%</div>
+    <div id="count">0 / 0 slides</div>
+  </div>
+</div>
+
+<script>
+let categories = [];
+let categoryId = 0;
+
+function addCategory() {
+  const id = categoryId++;
+  categories.push({ id, name: "Category " + (categories.length + 1), images: [] });
+
+  const box = document.createElement("div");
+  box.className = "category-box";
+  box.id = "cat-" + id;
+
+  box.innerHTML = `
+    <button class="delete-category" onclick="deleteCategory(${id})">🗑</button>
+    <h3>Category</h3>
+    <input value="Category ${categories.length}"
+      oninput="updateName(${id}, this.value)">
+    <div class="drop-zone">
+      Upload Images (Before Only)
+      <input type="file" multiple accept="image/*"
+        onchange="updateImages(${id}, this.files)">
+    </div>
+    <div class="file-count" id="count-${id}">No files</div>
+  `;
+
+  document.getElementById("categoriesContainer").prepend(box);
+}
+
+function deleteCategory(id) {
+  categories = categories.filter(c => c.id !== id);
+  document.getElementById("cat-" + id)?.remove();
+  renderSlides();
+}
+
+function updateName(id, val) {
+  const c = categories.find(x => x.id === id);
+  if (c) c.name = val;
+  renderSlides();
+}
+
+function updateImages(id, files) {
+  const c = categories.find(x => x.id === id);
+  c.images = Array.from(files).map(f => URL.createObjectURL(f));
+  document.getElementById("count-" + id).innerText =
+    c.images.length + " image(s)";
+  renderSlides();
+}
+
+/* SLIDES */
+function renderSlides() {
+  const container = document.getElementById("slidesContainer");
+  container.innerHTML = "";
+
+  categories.forEach(cat => {
+    if (!cat.images.length) return;
+
+    /* TITLE SLIDE */
+    const title = document.createElement("div");
+    title.className = "slide";
+    title.innerHTML = `
+      <img src="data/left.png" class="logo-left">
+      <img src="data/center.png" class="logo-center">
+      <img src="data/right.png" class="logo-right">
+
+      <div style="
+        height:100%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:60px;
+        font-weight:900;">
+        ${cat.name}
+      </div>
+    `;
+    container.appendChild(title);
+
+    /* IMAGE SLIDES */
+    cat.images.forEach(img => {
+      const slide = document.createElement("div");
+      slide.className = "slide";
+      slide.innerHTML = `
+        <img src="data/left.png" class="logo-left">
+        <img src="data/center.png" class="logo-center">
+        <img src="data/right.png" class="logo-right">
+
+        <div class="slide-headings">
+          <div>Before</div>
+          <div>During</div>
+          <div>After</div>
+        </div>
+
+        <div class="slide-images">
+          <div class="column"><img src="${img}"></div>
+          <div class="column" style = 'border: 1px dashed grey;'></div>
+          <div class="column" style = 'border: 1px dashed grey;'></div>
+        </div>
+      `;
+      container.appendChild(slide);
+    });
+  });
+}
+
+/* PDF EXPORT */
+async function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const slides = document.querySelectorAll(".slide");
+
+  if (!slides.length) return alert("No slides");
+
+  const overlay = document.getElementById("progressOverlay");
+  overlay.style.display = "flex";
+
+  // EXACT slide size (must match CSS)
+  const SLIDE_WIDTH = 1120;
+  const SLIDE_HEIGHT = 630;
+
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [SLIDE_WIDTH, SLIDE_HEIGHT]
+  });
+
+  for (let i = 0; i < slides.length; i++) {
+    if (i > 0) {
+      pdf.addPage([SLIDE_WIDTH, SLIDE_HEIGHT], "landscape");
+    }
+
+    const canvas = await html2canvas(slides[i], {
+      scale: 2,                 // sharpness
+      useCORS: true,
+      backgroundColor: "#ffffff"
+    });
+
+    const img = canvas.toDataURL("image/jpeg", 0.8);
+
+    pdf.addImage(
+      img,
+      "JPEG",
+      0,
+      0,
+      SLIDE_WIDTH,
+      SLIDE_HEIGHT,
+      undefined,
+      "FAST"
+    );
+
+    document.getElementById("percent").innerText =
+      Math.round(((i + 1) / slides.length) * 100) + "%";
+    document.getElementById("count").innerText =
+      (i + 1) + " / " + slides.length + " slides";
+  }
+
+  overlay.style.display = "none";
+  pdf.save("Before-During-After.pdf");
+}
+
+</script>
+
+</body>
+</html>
